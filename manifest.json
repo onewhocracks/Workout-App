@@ -1,11 +1,13 @@
 {
-  "name": "Upper Lower Workout Companion",
+  "id": "./",
+  "name": "Gym Companion",
   "short_name": "Gym",
+  "description": "Your upper/lower split, gym calendar and workout journal.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0b0f14",
-  "theme_color": "#0b0f14",
+  "background_color": "#101713",
+  "theme_color": "#101713",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -1,0 +1,8 @@
+node_modules/
+.openai/
+.sites-runtime/
+site/
+github-release/
+*.tar.gz
+phone-preview.jpg
+original-index.html
