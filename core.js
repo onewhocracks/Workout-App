@@ -3,6 +3,9 @@
   const ORDER=['Upper A','Lower A','Upper B','Lower B'];
   const LEVELS=['easy','medium','hard'];
   const MOODS=['rough','okay','great'];
+  // Keep the identity and units of historical dumbbell entries after the program change.
+  const OLD_LATERAL={name:'Dumbbell Lateral Raise',reps:'12–15',rest:75,last:'Keep strict/light',start:'5–10',unit:'lb each',cue:'Soft elbows, raise out and slightly forward, no shrugging.',sets:3};
+  function exerciseSpec(routine,index,name,workouts){return routine==='Upper B'&&index===3&&name===OLD_LATERAL.name?OLD_LATERAL:workouts[routine].exercises[index]}
   function dayKey(date=new Date()){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-')}
   function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T12:00:00');return !isNaN(d)&&dayKey(d)===value}
   function id(){return root.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)}
@@ -24,7 +27,7 @@
     if(typeof s.notes!=='string'||s.notes.length>10000)throw Error('Workout notes are invalid or too long.');
     if(!Array.isArray(s.exercises)||s.exercises.length!==workouts[s.routine].exercises.length)throw Error('Workout exercises do not match the program.');
     s.exercises.forEach((e,i)=>{
-      if(e.name!==workouts[s.routine].exercises[i].name||!['',...LEVELS].includes(e.feel)||!Array.isArray(e.sets)||e.sets.length!==3)throw Error('Workout exercise data is invalid.');
+      if(e.name!==exerciseSpec(s.routine,i,e.name,workouts).name||!['',...LEVELS].includes(e.feel)||!Array.isArray(e.sets)||e.sets.length!==3)throw Error('Workout exercise data is invalid.');
       e.sets.forEach(set=>{if(typeof set.weight!=='string'||set.weight.length>40||typeof set.reps!=='string'||set.reps.length>8||typeof set.done!=='boolean')throw Error('Set data is invalid.');if(set.done&&(!set.weight.trim()||!/^\d+(\.\d+)?$/.test(set.reps)||Number(set.reps)<=0||Number(set.reps)>9999))throw Error('A completed set needs a weight and positive reps or seconds.');});
     });
     if(finished&&!completed(s))throw Error('A saved workout must have at least one completed set.');
@@ -41,10 +44,10 @@
   function migrateLegacy(legacy,workouts){
     const state=emptyState(),mood={'😫':'rough','😐':'okay','😄':'great'};
     ORDER.forEach(k=>{if(!legacy?.[k]?.exercises)return;const d=startSession(k,workouts,[]);d.moodIn=mood[legacy[k].moodIn]||'';d.moodOut=mood[legacy[k].moodOut]||'';let hasData=!!(d.moodIn||d.moodOut);
-      d.exercises.forEach((e,i)=>{const old=legacy[k].exercises[i];if(!old)return;e.feel=LEVELS.includes(old.feel)?old.feel:'';e.sets=e.sets.map((s,j)=>{const os=old.sets?.[j];if(!os)return s;const weight=String(os.w??s.weight).slice(0,40),reps=String(os.r??'').slice(0,8);if(reps||os.d||e.feel)hasData=true;return {weight,reps,done:!!os.d&&!!weight.trim()&&/^\d+(\.\d+)?$/.test(reps)&&Number(reps)>0}})});
+      d.exercises.forEach((e,i)=>{const old=legacy[k].exercises[i];if(!old)return;if(k==='Upper B'&&i===3){e.name=OLD_LATERAL.name;e.sets.forEach(s=>s.weight='5')}e.feel=LEVELS.includes(old.feel)?old.feel:'';e.sets=e.sets.map((s,j)=>{const os=old.sets?.[j];if(!os)return s;const weight=String(os.w??s.weight).slice(0,40),reps=String(os.r??'').slice(0,8);if(reps||os.d||e.feel)hasData=true;return {weight,reps,done:!!os.d&&!!weight.trim()&&/^\d+(\.\d+)?$/.test(reps)&&Number(reps)>0}})});
       if(hasData)state.legacyDrafts[k]=d;
     });return state;
   }
-  root.GymCore={ORDER,LEVELS,MOODS,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,validateSession,validateBackup,mergeSessions,migrateLegacy};
+  root.GymCore={ORDER,LEVELS,MOODS,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,validateSession,validateBackup,mergeSessions,migrateLegacy};
   if(typeof module!=='undefined')module.exports=root.GymCore;
 })(typeof window!=='undefined'?window:globalThis);

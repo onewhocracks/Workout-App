@@ -1,6 +1,7 @@
 GYM COMPANION
 
-A phone-friendly workout tracker for Upper A, Lower A, Upper B and Lower B.
+A black-and-yellow phone-friendly workout tracker for Upper A, Lower A, Upper B and Lower B.
+Upper B exercise 04 uses Machine Lateral Raise (3 sets of 12-15 reps).
 
 OPEN THE APP
 https://onewhocracks.github.io/Workout-App/
@@ -46,6 +47,6 @@ manifest.json, sw.js and icons/ together.
 If an installed older version appears, open online and reload after updating.
 
 VERIFICATION
-Ten data tests passed. Phone-width browser checks covered saving, resume,
+Thirteen data tests passed. Phone-width browser checks covered saving, resume,
 mood/difficulty selection, history, backdating/editing, backup export/import,
 and offline reload. Installation has not been tested on a physical phone.
