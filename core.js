@@ -6,6 +6,15 @@
   // Keep the identity and units of historical dumbbell entries after the program change.
   const OLD_LATERAL={name:'Dumbbell Lateral Raise',reps:'12–15',rest:75,last:'Keep strict/light',start:'5–10',unit:'lb each',cue:'Soft elbows, raise out and slightly forward, no shrugging.',sets:3};
   function exerciseSpec(routine,index,name,workouts){return routine==='Upper B'&&index===3&&name===OLD_LATERAL.name?OLD_LATERAL:workouts[routine].exercises[index]}
+  function upgradeDraft(draft,workouts){
+    if(!draft||draft.routine!=='Upper B'||draft.finishedAt||draft.legacyRoutine)return false;
+    const old=draft.exercises[3];
+    if(old.name!==OLD_LATERAL.name||old.feel||old.sets.some(s=>s.done||s.reps||!['','5','5–10','5-10'].includes(s.weight)))return false;
+    const machine=workouts['Upper B'].exercises[3];
+    if(machine.name==='Dumbbell Lateral Raise')return false;
+    draft.exercises[3]={name:machine.name,feel:'',sets:Array.from({length:3},()=>({weight:machine.start,reps:'',done:false}))};
+    return true;
+  }
   function dayKey(date=new Date()){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-')}
   function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T12:00:00');return !isNaN(d)&&dayKey(d)===value}
   function id(){return root.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)}
@@ -48,6 +57,6 @@
       if(hasData)state.legacyDrafts[k]=d;
     });return state;
   }
-  root.GymCore={ORDER,LEVELS,MOODS,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,validateSession,validateBackup,mergeSessions,migrateLegacy};
+  root.GymCore={ORDER,LEVELS,MOODS,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,upgradeDraft,validateSession,validateBackup,mergeSessions,migrateLegacy};
   if(typeof module!=='undefined')module.exports=root.GymCore;
 })(typeof window!=='undefined'?window:globalThis);

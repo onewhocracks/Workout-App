@@ -11,7 +11,7 @@
   let rest={end:0,remaining:0,paused:false},restInterval;
   function warning(message){const el=$('#storage-warning');el.hidden=false;el.textContent=message}
   function load(){
-    try{const raw=localStorage.getItem(KEY);if(raw){const s=C.validateBackup(JSON.parse(raw),W);s.settings={autoRest:s.settings?.autoRest!==false};s.legacyDrafts??={};return s}
+    try{const raw=localStorage.getItem(KEY);if(raw){const s=C.validateBackup(JSON.parse(raw),W);s.settings={autoRest:s.settings?.autoRest!==false};s.legacyDrafts??={};C.upgradeDraft(s.draft,W);return s}
       const old=localStorage.getItem('gymUpperLowerPWA_v3');return old?C.migrateLegacy(JSON.parse(old),W):C.emptyState();
     }catch(e){blocked=true;warning('Your saved data could not be opened. It has been kept intact. Use More → Export stored data, or import a valid backup to recover.');return C.emptyState()}
   }
@@ -123,7 +123,7 @@
     const file=event.target.files[0];event.target.value='';if(!file)return;
     try{if(file.size>15000000)throw Error('Backup is too large. Choose a file smaller than 15 MB.');const imported=C.validateBackup(JSON.parse(await file.text()),W),incoming=imported.sessions.filter(s=>!state.sessions.some(old=>old.id===s.id));
       if(!await confirmAction('Import this backup?',`${incoming.length} new sessions will be added. Your existing sessions will stay unchanged.${blocked?' This will replace the unreadable stored data; export it first if you need a copy.':''}`,'Import backup'))return;
-      const previous=structuredClone(state),wasBlocked=blocked;state.sessions=C.mergeSessions(state.sessions,imported.sessions);if(!state.draft&&imported.draft)state.draft=structuredClone(imported.draft);blocked=false;
+      const previous=structuredClone(state),wasBlocked=blocked;state.sessions=C.mergeSessions(state.sessions,imported.sessions);if(!state.draft&&imported.draft)state.draft=structuredClone(imported.draft);C.upgradeDraft(state.draft,W);blocked=false;
       if(!save()){state=previous;blocked=wasBlocked;return toast('Import could not be saved. Existing data is unchanged.')}render();toast(`${incoming.length} sessions imported.`);
     }catch(e){toast('Import failed: '+(e.message||'Invalid backup.'))}
   });
@@ -132,7 +132,7 @@
   function connection(){const el=$('#connection');el.textContent=navigator.onLine?'On your device':'Offline';el.title='Workout data is saved locally in this browser.'}
   window.addEventListener('online',connection);window.addEventListener('offline',connection);document.addEventListener('visibilitychange',()=>{if(!$('#timer').hidden)tickRest()});
   // Avoid overwriting a newer session from another tab with this tab's stale state.
-  window.addEventListener('storage',event=>{if(event.key===KEY){try{state=event.newValue?C.validateBackup(JSON.parse(event.newValue),W):C.emptyState();state.settings??={autoRest:true};state.legacyDrafts??={};render();toast('Updated from another open tab.')}catch{warning('Data changed in another tab and could not be read. Export your data before reloading.');blocked=true}}});
+  window.addEventListener('storage',event=>{if(event.key===KEY){try{state=event.newValue?C.validateBackup(JSON.parse(event.newValue),W):C.emptyState();state.settings??={autoRest:true};state.legacyDrafts??={};C.upgradeDraft(state.draft,W);render();toast('Updated from another open tab.')}catch{warning('Data changed in another tab and could not be read. Export your data before reloading.');blocked=true}}});
   if('serviceWorker' in navigator)window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{console.info('Offline support unavailable in this browser context.')})});
   connection();render();
 })();

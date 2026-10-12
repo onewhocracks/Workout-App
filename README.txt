@@ -47,6 +47,6 @@ manifest.json, sw.js and icons/ together.
 If an installed older version appears, open online and reload after updating.
 
 VERIFICATION
-Thirteen data tests passed. Phone-width browser checks covered saving, resume,
+Fourteen data tests passed. Phone-width browser checks covered saving, resume,
 mood/difficulty selection, history, backdating/editing, backup export/import,
 and offline reload. Installation has not been tested on a physical phone.
