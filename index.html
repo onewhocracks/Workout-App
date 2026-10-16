@@ -4,8 +4,8 @@
 <meta name="theme-color" content="#080808"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Your four-day split, gym calendar, and personal training journal.">
-<link rel="manifest" href="manifest.json?v=4.4"><link rel="icon" href="icons/icon-yellow-192.png"><link rel="apple-touch-icon" href="icons/icon-yellow-192.png">
-<link rel="stylesheet" href="styles.css?v=4.4"><title>Gym Companion</title>
+<link rel="manifest" href="manifest.json?v=4.5"><link rel="icon" href="icons/icon-yellow-192.png"><link rel="apple-touch-icon" href="icons/icon-yellow-192.png">
+<link rel="stylesheet" href="styles.css?v=4.5"><title>Gym Companion</title>
 </head><body>
 <header class="app-header"><a href="#today" class="brand" aria-label="Gym Companion home"><span class="brand-mark">G<span>•</span></span><span>GYM <b>COMPANION</b></span></a><span id="connection" class="connection">On your device</span></header>
 <div id="storage-warning" class="warning" hidden></div>
@@ -20,5 +20,6 @@
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title"></h2><p id="confirm-copy" class="muted"></p><div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button value="confirm" id="confirm-yes" class="primary">Continue</button></div></form></dialog>
 <input type="file" id="import-file" accept="application/json,.json" hidden>
-<script src="workouts.js?v=4.4"></script><script src="core.js?v=4.4"></script><script src="app.js?v=4.4"></script>
+<dialog id="swap-dialog" aria-labelledby="swap-title"><h2 id="swap-title">Swap exercise</h2><p class="muted small" style="margin-top:10px">Each option keeps its own weights and reps. Completed sets stay assigned to the exercise you performed.</p><div id="swap-options" class="swap-options"></div><button class="secondary full" data-action="swap-close">Cancel</button></dialog>
+<script src="workouts.js?v=4.5"></script><script src="core.js?v=4.5"></script><script src="app.js?v=4.5"></script>
 </body></html>

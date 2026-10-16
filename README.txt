@@ -1,52 +1,41 @@
 GYM COMPANION
 
-A black-and-yellow phone-friendly workout tracker for Upper A, Lower A, Upper B and Lower B.
-Upper B exercise 04 uses Machine Lateral Raise (3 sets of 12-15 reps).
-
-OPEN THE APP
 https://onewhocracks.github.io/Workout-App/
 
-INSTALL ON YOUR PHONE
-iPhone: Open in Safari > Share > Add to Home Screen.
-Android: Open in Chrome > menu > Install app / Add to Home screen.
-The app works offline after its files are successfully cached on the first visit.
+Four-day upper/lower tracker with the existing black-and-yellow design.
+Upper A, Lower A, Upper B, Lower B: six strength slots, three sets each.
 
-WHAT IT TRACKS
-- Three sets per exercise: weight, reps and completed sets.
-- Mood before and after each workout.
-- Easy / Medium / Hard ratings per exercise and per workout.
-- Dated workout history in a monthly calendar.
-- Gym-day totals, session notes, and previous logged weights.
+NEW FLEXIBILITY
+- Swap only the five specifically assigned upper-body exercise slots.
+- Each alternative retains its own inputs; history names the exercise performed.
+- Move exercises up/down for today's gym flow or jump to any exercise.
+- Curl/triceps supersets stay linked, with three independently tracked rounds.
+- Five-minute treadmill warm-up and optional five-minute walking cool-down.
+- Existing data, original targets, lower-body routines and history are preserved.
 
-QUALITY OF LIFE
-Automatic saving and resume, exercise form cues, automatic rest timers with
-pause and extra time, editable dates and sessions, partial workout saves,
-and JSON backup export/import in More.
+Read UPDATE.md for the exact alternatives, data behavior, tests and deployment.
 
-YOUR DATA
-Workout records stay in this browser on this device. No cloud synchronization.
-Export a backup from More before changing devices or clearing browser data.
-Import adds new session IDs without replacing existing sessions.
+INSTALL
+Open the link on your phone.
+iPhone: Safari > Share > Add to Home Screen.
+Android: Chrome menu > Install app / Add to Home screen.
+Offline access is available after the app files are successfully cached.
 
-Older v3 entries are preserved and recoverable from More when using the same
-browser and website address. The original app did not record dates; choose
-the actual workout date before saving recovered entries to the calendar.
-Data saved on a different domain, such as the private ChatGPT Site, must be
-exported there and imported here. Home-screen apps may have separate storage.
+DATA
+Records stay in this browser on this device. There is no cloud synchronization.
+More > Export workout backup keeps a copy or transfers to another device.
+Backups include history, active progress, order, variants and walking statuses.
+Import merges new session IDs without replacing existing sessions.
+More > Export pre-update safety backup retrieves the local copy from before
+this flexibility update, once the first updated save has occurred.
+Older v3 entries remain recoverable in More on their original domain/browser.
+Do not clear browser data to update the app.
 
 DEVELOPMENT
-No build step or dependencies are required to serve this static app.
+No build step is required for this static app.
 node preview.cjs
-Open http://127.0.0.1:4173
-node --test tests/core.test.cjs
+node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs
 
-DEPLOYMENT
-GitHub Pages serves this repository's root. The .nojekyll file keeps the static
-assets intact. Keep index.html, app.js, core.js, workouts.js, styles.css,
-manifest.json, sw.js and icons/ together.
-If an installed older version appears, open online and reload after updating.
-
-VERIFICATION
-Fourteen data tests passed. Phone-width browser checks covered saving, resume,
-mood/difficulty selection, history, backdating/editing, backup export/import,
-and offline reload. Installation has not been tested on a physical phone.
+GitHub Pages serves main / root. Keep .nojekyll and all app assets together.
+The 26 automated tests pass. Mobile/desktop and offline browser checks passed.
+Physical phone installation has not been tested.
