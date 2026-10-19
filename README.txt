@@ -2,8 +2,16 @@ GYM COMPANION
 
 https://onewhocracks.github.io/Workout-App/
 
-Four-day upper/lower tracker with the existing black-and-yellow design.
+Four-day upper/lower tracker with a separate Cardio workout with the existing black-and-yellow design.
 Upper A, Lower A, Upper B, Lower B: six strength slots, three sets each.
+
+CARDIO AND PREVIOUS WORKOUTS
+Cardio includes Walkpad Walking, Elliptical and Treadmill Running.
+Speed controls cover 0.0-10.0 in 0.1 steps, defaulting to 3.0. Log minutes,
+mark each performed activity complete, and save to the same gym calendar.
+New strength sessions prefill the previous logged weights and reps. Previous
+exercise difficulty, overall difficulty and moods are shown as reference.
+BW loads show a BW button without a numeric load. Reps/seconds are still logged.
 
 NEW FLEXIBILITY
 - Swap only the five specifically assigned upper-body exercise slots.
@@ -34,8 +42,8 @@ Do not clear browser data to update the app.
 DEVELOPMENT
 No build step is required for this static app.
 node preview.cjs
-node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs
+node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs tests/cardio.test.cjs
 
 GitHub Pages serves main / root. Keep .nojekyll and all app assets together.
-The 26 automated tests pass. Mobile/desktop and offline browser checks passed.
+The 34 automated tests pass. Mobile/desktop and offline browser checks passed.
 Physical phone installation has not been tested.

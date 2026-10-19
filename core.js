@@ -3,6 +3,24 @@
   const ORDER=['Upper A','Lower A','Upper B','Lower B'];
   const LEVELS=['easy','medium','hard'];
   const MOODS=['rough','okay','great'];
+  const CARDIO_ACTIVITIES=['Walkpad Walking','Elliptical','Treadmill Running'];
+  const ROUTINES=[...ORDER,'Cardio'];
+  const isCardio=s=>s.routine==='Cardio';
+  const isBodyWeight=value=>/^(bw|body\s*weight)$/i.test(String(value).trim());
+  function formatLoad(weight,unit=''){return isBodyWeight(weight)?'BW':weight+(unit?' '+unit:'')}
+  function latestRoutine(routine,sessions,before=dayKey(),exclude=null){return sessions.filter(s=>s.routine===routine&&s.date<=before&&s.id!==exclude).sort((a,b)=>b.date.localeCompare(a.date)||b.finishedAt.localeCompare(a.finishedAt))[0]}
+  function previousExercise(name,sessions,before=dayKey(),exclude=null,routine=null){
+    const find=list=>list.filter(s=>!isCardio(s)&&s.date<=before&&s.id!==exclude).sort((a,b)=>b.date.localeCompare(a.date)||b.finishedAt.localeCompare(a.finishedAt)).map(session=>({session,record:session.exercises.flatMap(exerciseRecords).find(r=>r.name===name&&r.data.sets.some(s=>s.done))})).find(item=>item.record);
+    const found=(routine&&find(sessions.filter(s=>s.routine===routine)))||find(sessions);
+    return found?{session:found.session,data:found.record.data}:null;
+  }
+  function validSpeed(speed){return typeof speed==='string'&&speed.length<=8&&/^\d+(\.\d+)?$/.test(speed)&&Number(speed)>=0&&Number(speed)<=10&&Math.abs(Number(speed)*10-Math.round(Number(speed)*10))<1e-8}
+  function validMinutes(minutes){return typeof minutes==='string'&&minutes.length<=8&&/^\d+(\.\d+)?$/.test(minutes)&&Number(minutes)>=0.1&&Number(minutes)<=1440&&Math.abs(Number(minutes)*10-Math.round(Number(minutes)*10))<1e-8}
+  function cardioMinutes(s){return isCardio(s)?Math.round(s.cardio.reduce((n,r)=>n+(r.done?Number(r.minutes):0),0)*10)/10:0}
+  function toggleCardio(s,index){const r=s.cardio[index];if(r.done){r.done=false;return false}if(!validMinutes(r.minutes)||!validSpeed(r.speed))throw Error('Enter positive minutes and a speed from 0.0 to 10.0 in 0.1 steps.');r.done=true;return true}
+  function startCardio(sessions,date=dayKey()){
+    return {id:id(),routine:'Cardio',date,startedAt:new Date().toISOString(),finishedAt:'',moodIn:'',moodOut:'',difficulty:'',notes:'',exercises:[],activeCardio:0,cardio:CARDIO_ACTIVITIES.map(activity=>{const prev=sessions.filter(s=>isCardio(s)&&s.date<=date).sort((a,b)=>b.date.localeCompare(a.date)||b.finishedAt.localeCompare(a.finishedAt)).flatMap(s=>s.cardio).find(r=>r.activity===activity&&r.done);return {activity,speed:prev?.speed||'3.0',minutes:prev?.minutes||'',done:false}})};
+  }
   // Keep the identity and units of historical dumbbell entries after the program change.
   const OLD_LATERAL={name:'Dumbbell Lateral Raise',reps:'12–15',rest:75,last:'Keep strict/light',start:'5–10',unit:'lb each',cue:'Soft elbows, raise out and slightly forward, no shrugging.',sets:3};
   const ALTERNATIVES={
@@ -51,16 +69,16 @@
     if(!set.weight.trim()||!/^\d+(\.\d+)?$/.test(set.reps)||Number(set.reps)<=0||Number(set.reps)>9999)throw Error('Enter a weight (or BW) and positive reps or seconds first.');
     set.done=true;return true;
   }
-  function initialExercise(spec,sessions,date,exclude=null){
-    const prev=latestFor(spec.name,sessions,date,exclude),weight=/^\d+[–-]\d+$/.test(spec.start)?spec.start.split(/[–-]/)[0]:spec.start;
-    return {name:spec.name,feel:'',sets:Array.from({length:3},(_,i)=>({weight:(prev?.sets[i]?.done?prev.sets[i].weight:prev?.sets.find(s=>s.done)?.weight)??weight,reps:'',done:false}))};
+  function initialExercise(spec,sessions,date,exclude=null,routine=null){
+    const prev=latestFor(spec.name,sessions,date,exclude,routine),weight=/^\d+[–-]\d+$/.test(spec.start)?spec.start.split(/[–-]/)[0]:spec.start;
+    return {name:spec.name,feel:'',sets:Array.from({length:3},(_,i)=>({weight:(prev?.sets[i]?.done?prev.sets[i].weight:prev?.sets.find(s=>s.done)?.weight)??weight,reps:prev?.sets[i]?.done?prev.sets[i].reps:'',done:false}))};
   }
   function swapExercise(s,index,name,workouts,sessions=[]){
     const spec=exerciseOptions(s.routine,index,workouts).find(e=>e.name===name),e=s.exercises[index];
     if(!spec||!ALTERNATIVES[s.routine]?.[index])throw Error('That alternative is not assigned to this exercise.');
     if(e.name===name)return false;
     const variants=e.variants||{};variants[e.name]=structuredClone({feel:e.feel,sets:e.sets});
-    const target=variants[name]||initialExercise(spec,sessions,s.date,s.id);delete variants[name];
+    const target=variants[name]||initialExercise(spec,sessions,s.date,s.id,s.routine);delete variants[name];
     s.exercises[index]={name,feel:target.feel,sets:structuredClone(target.sets),variants};return true;
   }
   function upgradeDraft(draft,workouts){
@@ -78,16 +96,22 @@
   function emptyState(){return {version:4,sessions:[],draft:null,settings:{autoRest:true},legacyDrafts:{}}}
   function completed(session){return session.exercises.reduce((n,e)=>n+exerciseRecords(e).reduce((a,r)=>a+r.data.sets.filter(s=>s.done).length,0),0)}
   function uniqueDays(sessions){return new Set(sessions.map(s=>s.date)).size}
-  function latestFor(name,sessions,before=dayKey(),exclude=null){return sessions.filter(s=>s.date<=before&&s.id!==exclude).sort((a,b)=>b.date.localeCompare(a.date)||b.finishedAt.localeCompare(a.finishedAt)).flatMap(s=>s.exercises.flatMap(exerciseRecords)).find(r=>r.name===name&&r.data.sets.some(s=>s.done))?.data}
+  function latestFor(name,sessions,before=dayKey(),exclude=null,routine=null){return previousExercise(name,sessions,before,exclude,routine)?.data}
   function startSession(routine,workouts,sessions,date=dayKey()){
-    return prepareSession({id:id(),routine,date,startedAt:new Date().toISOString(),finishedAt:'',moodIn:'',moodOut:'',difficulty:'',notes:'',exercises:workouts[routine].exercises.map(e=>initialExercise(e,sessions,date))});
+    if(routine==='Cardio')return startCardio(sessions,date);
+    return prepareSession({id:id(),routine,date,startedAt:new Date().toISOString(),finishedAt:'',moodIn:'',moodOut:'',difficulty:'',notes:'',exercises:workouts[routine].exercises.map(e=>initialExercise(e,sessions,date,null,routine))});
   }
   function validateSession(s,workouts,finished=true){
-    if(!s||typeof s!=='object'||typeof s.id!=='string'||s.id.length>160||!ORDER.includes(s.routine)||!validDate(s.date)||s.date>dayKey())throw Error('A workout has an invalid routine or date.');
+    if(!s||typeof s!=='object'||typeof s.id!=='string'||s.id.length>160||!ROUTINES.includes(s.routine)||!validDate(s.date)||s.date>dayKey())throw Error('A workout has an invalid routine or date.');
     for(const f of ['startedAt','finishedAt'])if(typeof s[f]!=='string'||(s[f]&&isNaN(Date.parse(s[f]))))throw Error('A workout has an invalid timestamp.');
     if(!s.startedAt||(finished&&!s.finishedAt))throw Error('A workout is missing its timestamp.');
     if(!['',...MOODS].includes(s.moodIn)||!['',...MOODS].includes(s.moodOut)||!['',...LEVELS].includes(s.difficulty))throw Error('A workout has invalid ratings.');
     if(typeof s.notes!=='string'||s.notes.length>10000)throw Error('Workout notes are invalid or too long.');
+    if(isCardio(s)){
+      if(!Array.isArray(s.exercises)||s.exercises.length||!Number.isInteger(s.activeCardio)||s.activeCardio<0||s.activeCardio>2||!Array.isArray(s.cardio)||s.cardio.length!==3)throw Error('Cardio session data is invalid.');
+      s.cardio.forEach((r,i)=>{if(!r||r.activity!==CARDIO_ACTIVITIES[i]||typeof r.done!=='boolean'||typeof r.speed!=='string'||r.speed.length>8||typeof r.minutes!=='string'||r.minutes.length>8)throw Error('Cardio activity data is invalid.');if(r.done&&(!validSpeed(r.speed)||!validMinutes(r.minutes)))throw Error('Cardio requires positive minutes and a speed from 0.0 to 10.0 in 0.1 steps.');});
+      if(finished&&!s.cardio.some(r=>r.done))throw Error('Complete at least one cardio activity before saving.');return s;
+    }
     if(!Array.isArray(s.exercises)||s.exercises.length!==workouts[s.routine].exercises.length)throw Error('Workout exercises do not match the program.');
     if(s.exerciseOrder!==undefined){const order=s.exerciseOrder;if(!Array.isArray(order)||order.length!==6||new Set(order).size!==6||order.some(i=>!Number.isInteger(i)||i<0||i>5)||(hasSuperset(s)&&order.indexOf(5)!==order.indexOf(4)+1))throw Error('Exercise order is invalid or separates the superset.');}
     if(s.warmupComplete!==undefined&&typeof s.warmupComplete!=='boolean')throw Error('Warm-up status is invalid.');
@@ -121,6 +145,6 @@
       if(hasData)state.legacyDrafts[k]=d;
     });return state;
   }
-  root.GymCore={ORDER,LEVELS,MOODS,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,exerciseOptions,exerciseRecords,setOwner,roundComplete,toggleSet,swapExercise,hasSuperset,prepareSession,exerciseBlocks,moveExercise,upgradeDraft,validateSession,validateBackup,mergeSessions,migrateLegacy};
+  root.GymCore={ORDER,ROUTINES,CARDIO_ACTIVITIES,LEVELS,MOODS,isCardio,isBodyWeight,formatLoad,latestRoutine,previousExercise,validSpeed,validMinutes,cardioMinutes,toggleCardio,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,exerciseOptions,exerciseRecords,setOwner,roundComplete,toggleSet,swapExercise,hasSuperset,prepareSession,exerciseBlocks,moveExercise,upgradeDraft,validateSession,validateBackup,mergeSessions,migrateLegacy};
   if(typeof module!=='undefined')module.exports=root.GymCore;
 })(typeof window!=='undefined'?window:globalThis);

@@ -2,6 +2,15 @@
 
 The black-and-yellow design, four-day split, six strength slots per day, original exercise definitions, and three prescribed sets per slot are retained. Lower A and Lower B have no exercise substitutions.
 
+## Cardio and previous workout references — release 4.6
+
+- A separate **Cardio** workout offers **Walkpad Walking**, **Elliptical**, and **Treadmill Running**. Log one or more activities with duration and speed, mark them complete, and save them to the same calendar with moods, difficulty and notes.
+- Speed covers **0.0–10.0 in 0.1 steps**, with **3.0** as the initial default. Speed follows the machine display; no universal mph/kph assumption is made. Each activity keeps its own values when switching. New cardio sessions can prefill their previous logged settings.
+- Cardio minutes are tracked separately from strength sets. Cardio does not advance the Upper A → Lower A → Upper B → Lower B suggestion or count toward the four-strength-day indicator.
+- New strength sessions prefill previous completed-set **weights and reps** for the same exercise, preferring that routine's history. Missing prior sets keep empty rep fields. Actual previous dates and exercise difficulty are shown, with the last routine's overall difficulty and before/after moods above the workout. Today's checks, moods and difficulty start fresh.
+- **BW** displays directly as a load button with no numeric weight field. Numeric loads also have a BW shortcut; switching back restores the entered numeric load. Bodyweight sets still use reps or seconds. History shows BW without appending pound units.
+- Existing drafts, saved records, alternatives, supersets, order, routine definitions, and version-4 backups remain supported. Cardio is an additional validated record type under the existing storage key; old history is not rewritten.
+
 ## Assigned swaps
 
 | Routine / slot | Existing primary | Only alternative |
@@ -44,6 +53,7 @@ Every workout begins with **Treadmill Walking — 5 minutes** and **Warm-Up Comp
 - `sw.js`: new offline cache revision and versioned assets.
 - `tests/flex.test.cjs`: new flexibility, preservation, validation, and routine regression checks.
 - `tests/pwa.test.cjs`: offline asset and GitHub Pages subpath checks.
+- `tests/cardio.test.cjs`: cardio boundaries, history/backups, prefill, previous feelings, and BW checks. Existing core tests now expect rep autofill.
 - `README.txt` and `UPDATE.md`: usage, validation, and deployment instructions.
 
 `workouts.js`, existing tests, icons, manifest identity, and lower-body exercise definitions are unchanged.
@@ -53,13 +63,13 @@ Every workout begins with **Treadmill Walking — 5 minutes** and **Warm-Up Comp
 Run from the repository root:
 
 ```sh
-node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs
+node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs tests/cardio.test.cjs
 node --check app.js
 node --check core.js
 node --check sw.js
 ```
 
-All **26 automated tests** passed. Browser QA checked all five alternatives, swapping back to recover inputs, mobile and desktop move controls, completing later exercises/rounds first, reloading reordered progress, three complete superset rounds, warm-up, completed/skipped cool-down, actual-exercise history, unchanged Lower A/Lower B, and backup export. Reload and saving were also tested after the local HTTP server was stopped. The automated PWA check verifies every HTML asset is cached under both `/` and `/Workout-App/` and can be served offline.
+All **34 automated tests** passed. Existing flexibility checks remain in the suite. The cardio update's browser checks cover all three activities, inclusive speed endpoints, invalid speed rejection, separate values, resume, saving/calendar history, previous weights/reps/difficulty/moods, and BW-only completion. Offline and physical-device limits are noted below. The automated PWA check verifies every HTML asset is cached under both `/` and `/Workout-App/` and can be served offline.
 
 Physical iPhone/Android home-screen installation has not been tested; responsive browser and PWA asset checks were used.
 
@@ -69,7 +79,7 @@ GitHub Pages serves the root of `main` at https://onewhocracks.github.io/Workout
 
 1. Commit the modified files above to `main`, preserving the existing icons, manifest and `workouts.js`.
 2. Wait for **pages build and deployment** in GitHub Actions to finish successfully.
-3. Open the app online and refresh. Assets use release `4.5`, and the service worker revalidates online files while keeping an offline copy.
+3. Open the app online and refresh. Assets use release `4.6`, and the service worker revalidates online files while keeping an offline copy.
 4. If the app was open during deployment, refresh it after the deployment completes. Do not clear site data to update.
 
 For local preview, run `node preview.cjs` and open http://127.0.0.1:4173.
