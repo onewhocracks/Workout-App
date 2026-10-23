@@ -4,8 +4,8 @@
 <meta name="theme-color" content="#080808"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Your four-day split, gym calendar, and personal training journal.">
-<link rel="manifest" href="manifest.json?v=4.6"><link rel="icon" href="icons/icon-yellow-192.png"><link rel="apple-touch-icon" href="icons/icon-yellow-192.png">
-<link rel="stylesheet" href="styles.css?v=4.6"><title>Gym Companion</title>
+<link rel="manifest" href="manifest.json?v=4.7"><link rel="icon" href="icons/icon-yellow-192.png"><link rel="apple-touch-icon" href="icons/icon-yellow-192.png">
+<link rel="stylesheet" href="styles.css?v=4.7"><title>Gym Companion</title>
 </head><body>
 <header class="app-header"><a href="#today" class="brand" aria-label="Gym Companion home"><span class="brand-mark">G<span>•</span></span><span>GYM <b>COMPANION</b></span></a><span id="connection" class="connection">On your device</span></header>
 <div id="storage-warning" class="warning" hidden></div>
@@ -21,5 +21,15 @@
 <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title"></h2><p id="confirm-copy" class="muted"></p><div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button value="confirm" id="confirm-yes" class="primary">Continue</button></div></form></dialog>
 <input type="file" id="import-file" accept="application/json,.json" hidden>
 <dialog id="swap-dialog" aria-labelledby="swap-title"><h2 id="swap-title">Swap exercise</h2><p class="muted small" style="margin-top:10px">Each option keeps its own weights and reps. Completed sets stay assigned to the exercise you performed.</p><div id="swap-options" class="swap-options"></div><button class="secondary full" data-action="swap-close">Cancel</button></dialog>
-<script src="workouts.js?v=4.6"></script><script src="core.js?v=4.6"></script><script src="app.js?v=4.6"></script>
+<dialog id="plate-dialog" aria-labelledby="plate-title" aria-describedby="plate-context">
+<div class="plate-dialog-head"><div><span class="eyebrow">QUICK WEIGHT ENTRY</span><h2 id="plate-title">Plate calculator</h2></div><button class="secondary" data-action="plate-close" aria-label="Close plate calculator">✕</button></div>
+<p id="plate-context" class="muted small"></p>
+<div class="plate-modes" role="group" aria-label="How to count plates"><button class="secondary" data-action="plate-mode" data-mode="pair">Per side × 2</button><button class="secondary" data-action="plate-mode" data-mode="total">All plates / single</button></div>
+<p id="plate-count-label" class="muted small"></p><div id="plate-rows"></div>
+<details id="plate-base-options"><summary>＋ Machine / bar starting weight <span class="muted">(optional)</span></summary><label for="plate-base">Added once to the total, in lb</label><input id="plate-base" data-input="plate-base" inputmode="decimal" maxlength="12" placeholder="0" aria-label="Machine or bar starting weight"><p class="muted small">Use the machine’s stated starting resistance, or the bar weight. Leave blank to log plates only.</p></details>
+<div class="plate-result" aria-live="polite"><output id="plate-total">0 lb</output><p id="plate-math"></p></div><p id="plate-error" role="alert"></p>
+<label class="plate-fill"><input type="checkbox" id="plate-fill">Also fill other unfinished sets of this exercise</label>
+<div class="plate-dialog-actions"><button class="secondary" data-action="plate-clear">Clear plates</button><button class="primary" id="plate-apply" data-action="plate-apply">Use weight</button></div>
+</dialog>
+<script src="workouts.js?v=4.7"></script><script src="core.js?v=4.7"></script><script src="app.js?v=4.7"></script>
 </body></html>

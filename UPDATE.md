@@ -2,6 +2,14 @@
 
 The black-and-yellow design, four-day split, six strength slots per day, original exercise definitions, and three prescribed sets per slot are retained. Lower A and Lower B have no exercise substitutions.
 
+## Plate calculator — release 4.7
+
+- Each numeric load has a compact **＋ Plates** button. Add or remove **2.5, 5, 10, 25 and 45 lb** plates, counting one side doubled or all plates once. The live equation makes the selected counting method explicit.
+- A small expandable **Machine / bar starting weight** option adds the stated resistance once. Blank means zero; a base is never guessed. The calculator can reconstruct exact plate combinations from an existing numeric load.
+- **Use weight** writes the total directly into that set. An optional checkbox also fills the other unfinished sets for the same exercise. Completed sets and completed alternative slots are protected from the bulk fill. Reps, ratings and completion flags are retained.
+- Plate breakdowns and the entered base survive reload, history, backups, exercise swaps and previous-workout autofill. Manual weight edits discard stale plate metadata; BW remains a simple number-free mode.
+- App assets and the offline cache are versioned 4.7. All 39 tests passed, including calculator arithmetic, malformed input rejection, alternative ownership, previous-session metadata and PWA coverage. Phone-width browser checks verified input, both counting modes, base validation, cancel, bulk fill, completed-set protection, reload and saved history.
+
 ## Cardio and previous workout references — release 4.6
 
 - A separate **Cardio** workout offers **Walkpad Walking**, **Elliptical**, and **Treadmill Running**. Log one or more activities with duration and speed, mark them complete, and save them to the same calendar with moods, difficulty and notes.

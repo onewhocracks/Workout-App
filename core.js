@@ -5,6 +5,25 @@
   const MOODS=['rough','okay','great'];
   const CARDIO_ACTIVITIES=['Walkpad Walking','Elliptical','Treadmill Running'];
   const ROUTINES=[...ORDER,'Cardio'];
+  const PLATES=[45,25,10,5,2.5];
+  function plateTotal(recipe){
+    if(!recipe||!['pair','total'].includes(recipe.mode)||typeof recipe.base!=='string'||recipe.base.length>12||!/^\d+(\.\d{1,2})?$/.test(recipe.base)||Number(recipe.base)>10000||!Array.isArray(recipe.counts)||recipe.counts.length!==PLATES.length||recipe.counts.some(n=>!Number.isInteger(n)||n<0||n>100))throw Error('Enter a machine/bar weight from 0 to 10,000 lb and valid plate counts.');
+    return Math.round((Number(recipe.base)+recipe.counts.reduce((n,count,i)=>n+count*PLATES[i],0)*(recipe.mode==='pair'?2:1))*100)/100;
+  }
+  function plateRecipe(weight,seed={mode:'pair',base:'0'}){
+    const recipe={mode:seed.mode,base:seed.base,counts:PLATES.map(()=>0)};plateTotal(recipe);
+    if(!/^\+?\d+(\.\d+)?$/.test(String(weight).trim()))return recipe;
+    let remaining=(Number(weight)-Number(recipe.base))/(recipe.mode==='pair'?2:1);
+    if(remaining<0||Math.abs(remaining/2.5-Math.round(remaining/2.5))>1e-8)return recipe;
+    recipe.counts=PLATES.map(plate=>{const count=Math.min(100,Math.floor((remaining+1e-8)/plate));remaining-=count*plate;return count});
+    return remaining<1e-8?recipe:{...recipe,counts:PLATES.map(()=>0)};
+  }
+  function applyPlateLoad(session,index,round,recipe,fill=false){
+    const total=plateTotal(recipe),exercise=session.exercises[index],owner=setOwner(exercise,round);
+    if(owner&&owner.name!==exercise.name)throw Error('Undo the completed alternative before changing its weight.');
+    const targets=fill?exercise.sets.map((_,j)=>j).filter(j=>j===round||!setOwner(exercise,j)):[round];
+    targets.forEach(j=>{const set=exercise.sets[j];set.weight=String(total);set.plateLoad=structuredClone(recipe);delete set.loadBeforeBW});return total;
+  }
   const isCardio=s=>s.routine==='Cardio';
   const isBodyWeight=value=>/^(bw|body\s*weight)$/i.test(String(value).trim());
   function formatLoad(weight,unit=''){return isBodyWeight(weight)?'BW':weight+(unit?' '+unit:'')}
@@ -71,7 +90,7 @@
   }
   function initialExercise(spec,sessions,date,exclude=null,routine=null){
     const prev=latestFor(spec.name,sessions,date,exclude,routine),weight=/^\d+[–-]\d+$/.test(spec.start)?spec.start.split(/[–-]/)[0]:spec.start;
-    return {name:spec.name,feel:'',sets:Array.from({length:3},(_,i)=>({weight:(prev?.sets[i]?.done?prev.sets[i].weight:prev?.sets.find(s=>s.done)?.weight)??weight,reps:prev?.sets[i]?.done?prev.sets[i].reps:'',done:false}))};
+    return {name:spec.name,feel:'',sets:Array.from({length:3},(_,i)=>{const prior=prev?.sets[i]?.done?prev.sets[i]:prev?.sets.find(s=>s.done);return {weight:prior?.weight??weight,reps:prev?.sets[i]?.done?prev.sets[i].reps:'',done:false,...(prior?.plateLoad?{plateLoad:structuredClone(prior.plateLoad)}:{})}})};
   }
   function swapExercise(s,index,name,workouts,sessions=[]){
     const spec=exerciseOptions(s.routine,index,workouts).find(e=>e.name===name),e=s.exercises[index];
@@ -122,7 +141,7 @@
       for(const record of exerciseRecords(e)){
         const {name,data}=record;
         if(name!==exerciseSpec(s.routine,i,name,workouts).name||!data||!['',...LEVELS].includes(data.feel)||!Array.isArray(data.sets)||data.sets.length!==3)throw Error('Workout exercise data is invalid.');
-        data.sets.forEach(set=>{if(!set||typeof set.weight!=='string'||set.weight.length>40||typeof set.reps!=='string'||set.reps.length>8||typeof set.done!=='boolean')throw Error('Set data is invalid.');if(set.done&&(!set.weight.trim()||!/^\d+(\.\d+)?$/.test(set.reps)||Number(set.reps)<=0||Number(set.reps)>9999))throw Error('A completed set needs a weight and positive reps or seconds.');});
+        data.sets.forEach(set=>{if(!set||typeof set.weight!=='string'||set.weight.length>40||typeof set.reps!=='string'||set.reps.length>8||typeof set.done!=='boolean')throw Error('Set data is invalid.');if(set.plateLoad!==undefined&&plateTotal(set.plateLoad)!==Number(set.weight))throw Error('Plate details do not match the logged weight.');if(set.done&&(!set.weight.trim()||!/^\d+(\.\d+)?$/.test(set.reps)||Number(set.reps)<=0||Number(set.reps)>9999))throw Error('A completed set needs a weight and positive reps or seconds.');});
       }
       if(e.variants&&Object.hasOwn(e.variants,e.name))throw Error('The active exercise is duplicated in its alternatives.');
       for(let j=0;j<3;j++)if(exerciseRecords(e).filter(r=>r.data.sets[j].done).length>1)throw Error('A prescribed set is completed twice across alternatives.');
@@ -145,6 +164,6 @@
       if(hasData)state.legacyDrafts[k]=d;
     });return state;
   }
-  root.GymCore={ORDER,ROUTINES,CARDIO_ACTIVITIES,LEVELS,MOODS,isCardio,isBodyWeight,formatLoad,latestRoutine,previousExercise,validSpeed,validMinutes,cardioMinutes,toggleCardio,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,exerciseOptions,exerciseRecords,setOwner,roundComplete,toggleSet,swapExercise,hasSuperset,prepareSession,exerciseBlocks,moveExercise,upgradeDraft,validateSession,validateBackup,mergeSessions,migrateLegacy};
+  root.GymCore={ORDER,ROUTINES,CARDIO_ACTIVITIES,PLATES,plateTotal,plateRecipe,applyPlateLoad,LEVELS,MOODS,isCardio,isBodyWeight,formatLoad,latestRoutine,previousExercise,validSpeed,validMinutes,cardioMinutes,toggleCardio,dayKey,validDate,id,emptyState,completed,uniqueDays,latestFor,startSession,exerciseSpec,exerciseOptions,exerciseRecords,setOwner,roundComplete,toggleSet,swapExercise,hasSuperset,prepareSession,exerciseBlocks,moveExercise,upgradeDraft,validateSession,validateBackup,mergeSessions,migrateLegacy};
   if(typeof module!=='undefined')module.exports=root.GymCore;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,5 +1,5 @@
-const CACHE='gym-companion-v4-6';
-const ASSETS=['./','./index.html','./styles.css?v=4.6','./workouts.js?v=4.6','./core.js?v=4.6','./app.js?v=4.6','./manifest.json?v=4.6','./icons/icon-yellow-192.png','./icons/icon-yellow-512.png'];
+const CACHE='gym-companion-v4-7';
+const ASSETS=['./','./index.html','./styles.css?v=4.7','./workouts.js?v=4.7','./core.js?v=4.7','./app.js?v=4.7','./manifest.json?v=4.7','./icons/icon-yellow-192.png','./icons/icon-yellow-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(asset=>new Request(asset,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>(k.startsWith('gym-companion-')||k.startsWith('workout-companion-'))&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{

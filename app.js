@@ -9,6 +9,7 @@
   const cap=s=>s?s[0].toUpperCase()+s.slice(1):'Unrated';
   let blocked=false,state=load(),selectedDate=C.dayKey(),month=new Date(new Date().getFullYear(),new Date().getMonth(),1),startDate=C.dayKey(),toastTimeout,installPrompt;
   let rest={end:0,remaining:0,paused:false},restInterval;
+  let plateCalc=null;
   function warning(message){const el=$('#storage-warning');el.hidden=false;el.textContent=message}
   function load(){
     try{const raw=localStorage.getItem(KEY);if(raw){const s=C.validateBackup(JSON.parse(raw),W);s.settings={autoRest:s.settings?.autoRest!==false};s.legacyDrafts??={};C.upgradeDraft(s.draft,W);return s}
@@ -61,7 +62,26 @@
   function setHeading(e){return `<div class="set-heading"><span>SET</span><span>WEIGHT ${e.unit?'('+esc(e.unit)+')':'/ BW'}</span><span>${e.name==='Plank'?'SECONDS':'REPS'}</span><span>DONE</span></div>`}
   function weightControl(set,name,index,round,locked){
     if(C.isBodyWeight(set.weight))return locked?'<span class="bw-value">BW</span>':`<button class="bw-value" data-action="weight-mode" data-index="${index}" data-set="${round}" data-mode="load" aria-label="${esc(name)} set ${round+1} weight BW; switch to added weight">BW</button>`;
-    return `<div class="weight-control"><input aria-label="${esc(name)} set ${round+1} weight" inputmode="decimal" maxlength="40" data-input="weight" data-index="${index}" data-set="${round}" value="${esc(set.weight)}" placeholder="Weight" ${locked?'disabled':''}>${locked?'':`<button class="bw-toggle" data-action="weight-mode" data-index="${index}" data-set="${round}" data-mode="bw" aria-label="Use BW for ${esc(name)} set ${round+1}">BW</button>`}</div>`;
+    return `<div class="weight-control"><input aria-label="${esc(name)} set ${round+1} weight" inputmode="decimal" maxlength="40" data-input="weight" data-index="${index}" data-set="${round}" value="${esc(set.weight)}" placeholder="Weight" ${locked?'disabled':''}>${locked?'':`<button class="plate-open" data-action="plate-open" data-index="${index}" data-set="${round}" aria-label="Plate calculator for ${esc(name)} set ${round+1}">＋ Plates</button><button class="bw-toggle" data-action="weight-mode" data-index="${index}" data-set="${round}" data-mode="bw" aria-label="Use BW for ${esc(name)} set ${round+1}">BW</button>`}${set.plateLoad?`<span class="plate-caption">${esc(plateDescription(set.plateLoad))}</span>`:''}</div>`;
+  }
+  function plateDescription(recipe){const total=C.plateTotal(recipe),base=Number(recipe.base);return `${total-base} lb plates${base?' + '+base+' lb machine/bar':''} · ${total} lb total`}
+  function loggedLoad(set,unit){return set.plateLoad?plateDescription(set.plateLoad):C.formatLoad(set.weight,unit)}
+  function openPlates(index,round){
+    const d=state.draft,e=d.exercises[index],set=e.sets[round],spec=C.exerciseSpec(d.routine,index,e.name,W),saved=set.plateLoad||e.sets.find(s=>s.plateLoad)?.plateLoad;
+    const seed=saved?{mode:saved.mode,base:saved.base}:{mode:/plates|barbell/i.test(spec.unit+' '+e.name)?'pair':'total',base:'0'};
+    plateCalc={session:d.id,name:e.name,index,round,recipe:set.plateLoad?structuredClone(set.plateLoad):C.plateRecipe(set.weight,seed)};
+    $('#plate-context').textContent=`${e.name} · Set ${round+1} · Currently ${set.weight||'blank'}${C.isBodyWeight(set.weight)?'':' lb'}`;
+    $('#plate-base').value=plateCalc.recipe.base==='0'?'':plateCalc.recipe.base;
+    $('#plate-base-options').open=Number(plateCalc.recipe.base)>0;$('#plate-fill').checked=false;
+    $('#plate-rows').innerHTML=C.PLATES.map((plate,i)=>`<div class="plate-row"><strong>${plate}<span> lb</span></strong><button class="secondary" data-action="plate-count" data-plate="${i}" data-delta="-1" aria-label="Remove ${plate} lb plate">−</button><output id="plate-count-${i}" aria-label="${plate} lb plate count">0</output><button class="secondary" data-action="plate-count" data-plate="${i}" data-delta="1" aria-label="Add ${plate} lb plate">＋</button></div>`).join('');
+    updatePlates();$('#plate-dialog').showModal();
+  }
+  function updatePlates(){
+    const recipe=plateCalc.recipe;document.querySelectorAll('[data-action="plate-mode"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===recipe.mode));
+    $('#plate-count-label').textContent=recipe.mode==='pair'?'Count plates on ONE side. Both sides are included below.':'Count ALL plates once. Dumbbell totals are per dumbbell.';
+    recipe.counts.forEach((n,i)=>{$('#plate-count-'+i).textContent=n;const buttons=$('#plate-rows').querySelectorAll(`[data-plate="${i}"]`);buttons[0].disabled=n===0;buttons[1].disabled=n===100});
+    try{const total=C.plateTotal(recipe),base=Number(recipe.base),one=recipe.counts.reduce((n,count,i)=>n+count*C.PLATES[i],0);$('#plate-total').textContent=total+' lb';$('#plate-math').textContent=`${one} lb${recipe.mode==='pair'?' × 2 sides':''}${base?' + '+base+' lb machine/bar':''} = ${total} lb total`;$('#plate-error').textContent='';$('#plate-apply').disabled=false}
+    catch(e){$('#plate-total').textContent='—';$('#plate-math').textContent='Check the machine/bar weight.';$('#plate-error').textContent=e.message;$('#plate-apply').disabled=true}
   }
   function previousWorkout(d){
     const last=C.latestRoutine(d.routine,state.sessions,d.date,d.id);if(!last)return '';
@@ -69,7 +89,7 @@
   }
   function exerciseIntro(d,i){
     const x=d.exercises[i],e=C.exerciseSpec(d.routine,i,x.name,W),prior=C.previousExercise(x.name,state.sessions,d.date,d.id,d.routine),prev=prior?.data;
-    return `<div class="exercise-head"><span class="exercise-number">${String(i+1).padStart(2,'0')}</span><div class="exercise-title"><h3>${esc(x.name)}</h3><p class="meta">3 sets · ${esc(e.reps)}${e.unit?' · '+esc(e.unit):''}</p></div>${C.exerciseOptions(d.routine,i,W).length>1?`<button class="swap-button" data-action="swap-open" data-index="${i}" aria-label="Swap ${esc(x.name)}">⇄ Swap</button>`:''}</div><details data-cue="${i}"><summary>Form cues</summary><p>${esc(e.cue)}</p></details><div class="previous">${prev?`Last ${esc(prior.session.routine)} · ${fmt(prior.session.date)}: ${prev.sets.filter(s=>s.done).map(s=>esc(C.formatLoad(s.weight,e.unit))+' × '+esc(s.reps)).join(' / ')}<br>Previous exercise difficulty: <strong>${cap(prev.feel)}</strong>`:'Starting reference: '+esc(e.last)}</div>`;
+    return `<div class="exercise-head"><span class="exercise-number">${String(i+1).padStart(2,'0')}</span><div class="exercise-title"><h3>${esc(x.name)}</h3><p class="meta">3 sets · ${esc(e.reps)}${e.unit?' · '+esc(e.unit):''}</p></div>${C.exerciseOptions(d.routine,i,W).length>1?`<button class="swap-button" data-action="swap-open" data-index="${i}" aria-label="Swap ${esc(x.name)}">⇄ Swap</button>`:''}</div><details data-cue="${i}"><summary>Form cues</summary><p>${esc(e.cue)}</p></details><div class="previous">${prev?`Last ${esc(prior.session.routine)} · ${fmt(prior.session.date)}: ${prev.sets.filter(s=>s.done).map(s=>esc(loggedLoad(s,e.unit))+' × '+esc(s.reps)).join(' / ')}<br>Previous exercise difficulty: <strong>${cap(prev.feel)}</strong>`:'Starting reference: '+esc(e.last)}</div>`;
   }
   function exerciseFooter(d,i,showRest=true){const x=d.exercises[i],e=C.exerciseSpec(d.routine,i,x.name,W);return `<div class="exercise-footer"><div><span class="eyebrow" style="font-size:8px;margin-bottom:6px">${showRest?'EXERCISE DIFFICULTY':esc(x.name)+' · DIFFICULTY'}</span>${difficultyPicker(x.feel,'feel',i)}</div>${showRest?`<button class="rest-button" data-action="rest" data-seconds="${e.rest}">◷ Rest ${Math.floor(e.rest/60)}:${String(e.rest%60).padStart(2,'0')}</button>`:''}</div>`}
   function exerciseList(d){
@@ -118,7 +138,7 @@
   }
   function historyExercise(s,i){
     const exercise=s.exercises[i],records=C.exerciseRecords(exercise),performed=records.filter(r=>r.data.sets.some(set=>set.done));
-    return (performed.length?performed:[records[0]]).map(({name,data})=>{const spec=C.exerciseSpec(s.routine,i,name,W);return `<div class="history-exercise"><div class="section-head"><h3>${esc(name)}</h3>${difficultyTag(data.feel)}</div><p>${data.sets.map((set,j)=>set.done?`Set ${j+1}: ${esc(C.formatLoad(set.weight,spec.unit))} × ${esc(set.reps)}${name==='Plank'?' sec':''}`:`Set ${j+1}: —`).join('<br>')}</p></div>`}).join('');
+    return (performed.length?performed:[records[0]]).map(({name,data})=>{const spec=C.exerciseSpec(s.routine,i,name,W);return `<div class="history-exercise"><div class="section-head"><h3>${esc(name)}</h3>${difficultyTag(data.feel)}</div><p>${data.sets.map((set,j)=>set.done?`Set ${j+1}: ${esc(loggedLoad(set,spec.unit))} × ${esc(set.reps)}${name==='Plank'?' sec':''}`:`Set ${j+1}: —`).join('<br>')}</p></div>`}).join('');
   }
   function historyExercises(s){return C.exerciseBlocks(s).map(block=>block.length===1?historyExercise(s,block[0]):`<section class="history-superset"><h3>Superset — 3 Rounds</h3><p class="muted small">${[0,1,2].map(j=>`Round ${j+1}: ${C.roundComplete(s,j)?'Complete':'Incomplete'}`).join(' · ')}</p>${block.map(i=>historyExercise(s,i)).join('')}</section>`).join('')}
   function detail(id){
@@ -152,7 +172,13 @@
       if(a==='resume')return go('session');
       if(a==='cardio-activity'&&d&&C.isCardio(d)){d.activeCardio=Number(b.dataset.index);save();$('#cardio-activity-panel').innerHTML=cardioActivityPanel(d);return}
       if(a==='cardio-complete'&&d&&C.isCardio(d)){C.toggleCardio(d,d.activeCardio);save();$('#cardio-activity-panel').innerHTML=cardioActivityPanel(d);return}
-      if(a==='weight-mode'&&d){const i=Number(b.dataset.index),j=Number(b.dataset.set),set=d.exercises[i].sets[j];if(C.setOwner(d.exercises[i],j)?.name&&C.setOwner(d.exercises[i],j).name!==d.exercises[i].name)return;if(b.dataset.mode==='bw'){set.loadBeforeBW=set.weight;set.weight='BW'}else{set.weight=set.loadBeforeBW||'';if(!set.weight&&set.done)set.done=false}save();refreshExerciseList(i);return}
+      if(a==='weight-mode'&&d){const i=Number(b.dataset.index),j=Number(b.dataset.set),set=d.exercises[i].sets[j];if(C.setOwner(d.exercises[i],j)?.name&&C.setOwner(d.exercises[i],j).name!==d.exercises[i].name)return;if(b.dataset.mode==='bw'){set.loadBeforeBW=set.weight;set.weight='BW';delete set.plateLoad}else{set.weight=set.loadBeforeBW||'';if(!set.weight&&set.done)set.done=false}save();refreshExerciseList(i);return}
+      if(a==='plate-open'&&d&&!C.isCardio(d))return openPlates(Number(b.dataset.index),Number(b.dataset.set));
+      if(a==='plate-close')return $('#plate-dialog').close();
+      if(a==='plate-count'&&plateCalc){const i=Number(b.dataset.plate);plateCalc.recipe.counts[i]=Math.max(0,Math.min(100,plateCalc.recipe.counts[i]+Number(b.dataset.delta)));return updatePlates()}
+      if(a==='plate-mode'&&plateCalc){plateCalc.recipe.mode=b.dataset.mode;return updatePlates()}
+      if(a==='plate-clear'&&plateCalc){plateCalc.recipe.counts.fill(0);return updatePlates()}
+      if(a==='plate-apply'&&plateCalc){const p=plateCalc;if(!d||d.id!==p.session||d.exercises[p.index]?.name!==p.name)throw Error('This exercise changed. Close and reopen the calculator.');const old=structuredClone(d.exercises[p.index]);const total=C.applyPlateLoad(d,p.index,p.round,p.recipe,$('#plate-fill').checked);if(!save()){d.exercises[p.index]=old;return toast('Could not save this weight. Keep this page open and export a backup.')}$('#plate-dialog').close();refreshExerciseList(p.index);return toast(total+' lb entered.')}
 
       if(a==='swap-open'&&d)return openSwap(Number(b.dataset.index));
       if(a==='swap-close')return $('#swap-dialog').close();
@@ -190,10 +216,11 @@
     }catch(e){toast(e.message||'This action could not be completed.')}
   });
   document.addEventListener('input',event=>{const el=event.target,field=el.dataset.input;if(!field)return;
+    if(field==='plate-base'&&plateCalc){plateCalc.recipe.base=el.value.trim()||'0';updatePlates();return}
     if(field==='autoRest'){state.settings.autoRest=el.checked;save();return}const d=state.draft;if(!d)return;
     if(C.isCardio(d)&&['cardio-speed','cardio-slider','cardio-minutes'].includes(field)){const record=d.cardio[d.activeCardio];if(field==='cardio-minutes')record.minutes=el.value;else{record.speed=field==='cardio-slider'?Number(el.value).toFixed(1):el.value;const number=$('[data-input="cardio-speed"]'),slider=$('[data-input="cardio-slider"]');if(field==='cardio-slider')number.value=record.speed;else if(C.validSpeed(record.speed))slider.value=record.speed;$('#speed-output').textContent=C.validSpeed(record.speed)?Number(record.speed).toFixed(1):'—'}if(record.done&&(!C.validSpeed(record.speed)||!C.validMinutes(record.minutes))){record.done=false;const button=$('[data-action="cardio-complete"]');button.setAttribute('aria-pressed','false');button.className='secondary full';button.textContent='Mark activity complete'}updateCardioSummary(d);save();return}
 
-    if(field==='weight'||field==='reps'){const i=Number(el.dataset.index),j=Number(el.dataset.set),s=d.exercises[i].sets[j];s[field]=el.value;if(s.done&&(!s.weight.trim()||!/^\d+(\.\d+)?$/.test(s.reps)||Number(s.reps)<=0||Number(s.reps)>9999)){s.done=false;const button=$(`[data-action="set"][data-index="${i}"][data-set="${j}"]`);button.setAttribute('aria-pressed','false');button.textContent='○';progress()}save()}
+    if(field==='weight'||field==='reps'){const i=Number(el.dataset.index),j=Number(el.dataset.set),s=d.exercises[i].sets[j];s[field]=el.value;if(field==='weight'){delete s.plateLoad;el.parentElement.querySelector('.plate-caption')?.remove()}if(s.done&&(!s.weight.trim()||!/^\d+(\.\d+)?$/.test(s.reps)||Number(s.reps)<=0||Number(s.reps)>9999)){s.done=false;const button=$(`[data-action="set"][data-index="${i}"][data-set="${j}"]`);button.setAttribute('aria-pressed','false');button.textContent='○';progress()}save()}
     if(field==='notes'){d.notes=el.value;save()}
   });
   document.addEventListener('change',event=>{const el=event.target;if(el.dataset.input==='date'&&state.draft){if(!C.validDate(el.value)||el.value>C.dayKey()){el.value=state.draft.date;toast('Choose today or an earlier workout date.');return}state.draft.date=el.value;save();render()}});

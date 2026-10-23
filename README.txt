@@ -42,8 +42,15 @@ Do not clear browser data to update the app.
 DEVELOPMENT
 No build step is required for this static app.
 node preview.cjs
-node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs tests/cardio.test.cjs
+node --test --test-isolation=none tests/core.test.cjs tests/flex.test.cjs tests/pwa.test.cjs tests/cardio.test.cjs tests/plates.test.cjs
 
 GitHub Pages serves main / root. Keep .nojekyll and all app assets together.
-The 34 automated tests pass. Mobile/desktop and offline browser checks passed.
+The 39 automated tests pass. Mobile/desktop and offline browser checks passed.
 Physical phone installation has not been tested.
+
+PLATE CALCULATOR (4.7)
+Tap + Plates beside a numeric weight. Count 2.5, 5, 10, 25 and 45 lb plates
+per side x 2 or as a single total. Expand Machine / bar starting weight to
+add the stated resistance once. Use weight fills the set; the optional checkbox
+also fills other unfinished sets without changing completed ones. Plate details
+return with previous-workout autofill and are included in backups and history.
